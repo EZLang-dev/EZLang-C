@@ -16,6 +16,9 @@ int c;
 const char* code;
 int codeLength;
 
+int cx = 1;
+int cy = 1;
+
 char peek(int a){
     if(c + a > codeLength) return 0;
     return code[c + a];
@@ -24,6 +27,20 @@ char peek(int a){
 char current(){
     return peek(0);
 }
+
+void step(int a){
+    for(int i = 0; i < a; i++){
+        c++;
+        cx++;
+
+        if(current() == '\n'){
+            cx = 1;
+            cy++;
+        }
+    }
+}
+
+
 
 ez_token* ez_lex(const char* string, int* tokenc){
 
@@ -35,20 +52,20 @@ ez_token* ez_lex(const char* string, int* tokenc){
 
     while(current()){
 
-        if(current() == ' ') {c++; continue;}
-        if(current() == '\t') {c++; continue;}
-        if(current() == '\n') {c++; continue;}
-        if(current() == ';') {c++; ez_add_token_fast(EZ_TOKEN_TYPE_NEWLINE); continue;}
-        if(current() == '/' && peek(1) == '/') {while(current() != '\n') c++; c++; continue;}
+        if(current() == ' ') {step(1); continue;}
+        if(current() == '\t') {step(1); continue;}
+        if(current() == '\n') {step(1); continue;}
+        if(current() == ';') {step(1); ez_add_token_fast(EZ_TOKEN_TYPE_NEWLINE); continue;}
+        if(current() == '/' && peek(1) == '/') {while(current() != '\n') step(1); step(1); continue;} // While we havent switched line, increace "c". Then we increase c once more to step onto the next line.
 
-        if(current() == '{') {c++; ez_add_token_fast(EZ_TOKEN_TYPE_BRACKETS_OPEN); continue;}
-        if(current() == '}') {c++; ez_add_token_fast(EZ_TOKEN_TYPE_BRACKETS_CLOSE); continue;}
+        if(current() == '{') {step(1); ez_add_token_fast(EZ_TOKEN_TYPE_BRACKETS_OPEN); continue;}
+        if(current() == '}') {step(1); ez_add_token_fast(EZ_TOKEN_TYPE_BRACKETS_CLOSE); continue;}
 
-        if(current() == '(') {c++; ez_add_token_fast(EZ_TOKEN_TYPE_PARENTHASIS_OPEN); continue;}
-        if(current() == ')') {c++; ez_add_token_fast(EZ_TOKEN_TYPE_PARENTHASIS_CLOSE); continue;}
+        if(current() == '(') {step(1); ez_add_token_fast(EZ_TOKEN_TYPE_PARENTHASIS_OPEN); continue;}
+        if(current() == ')') {step(1); ez_add_token_fast(EZ_TOKEN_TYPE_PARENTHASIS_CLOSE); continue;}
 
-        if(current() == ',') {c++; ez_add_token_fast(EZ_TOKEN_TYPE_COMMA); continue;}
-        if(current() == '.') {c++; ez_add_token_fast(EZ_TOKEN_TYPE_ACCESS); continue;}
+        if(current() == ',') {step(1); ez_add_token_fast(EZ_TOKEN_TYPE_COMMA); continue;}
+        if(current() == '.') {step(1); ez_add_token_fast(EZ_TOKEN_TYPE_ACCESS); continue;}
 
         if(isalpha(current())){
             ez_lex_word();
@@ -66,17 +83,17 @@ ez_token* ez_lex(const char* string, int* tokenc){
         }
 
         if(current() == '<'){
-            c++;
+            step(1);
             if(current() == '-'){
                 ez_add_token_fast(EZ_TOKEN_TYPE_SET);
-                c++;
+                step(1);
                 continue;
             }
             ez_add_token_fast(EZ_TOKEN_TYPE_LESS_THAN);
         }
 
-        std::cerr << "[" << c << "]ERROR: Unexpected char: " << current() << "(" << (int)current() << ")" << std::endl;
-        c++;
+        std::cerr << "[ line: " << cy << ", col: " << cx << " ]\tERROR:\tUnexpected char: \"" << current() << "\"\t(" << (int)current() << ")" << std::endl;
+        step(1);
     }
 
     *tokenc = tokens.size();
@@ -93,7 +110,7 @@ void ez_lex_word(){
     int word_current = 0;
     while(isalnum(current())){
         word_name[word_current++] = current();
-        c++;
+        step(1);
     }
     tokens.push_back(ez_token {EZ_TOKEN_TYPE_WORD, word_name, true});
 }
@@ -103,7 +120,7 @@ void ez_lex_number(){
     int digit_current = 0;
     while(isalnum(current())){
         digit_string[digit_current++] = current();
-        c++;
+        step(1);
     }
     tokens.push_back(ez_token {EZ_TOKEN_TYPE_NUM, digit_string, true});
 }
@@ -111,11 +128,11 @@ void ez_lex_number(){
 void ez_lex_string(){
     char* digit_string = (char*)malloc(256);
     int digit_current = 0;
-    c++;
+    step(1);
     while(current() != '"'){
         digit_string[digit_current++] = current();
-        c++;
+        step(1);
     }
-    c++;
+    step(1);
     tokens.push_back(ez_token {EZ_TOKEN_TYPE_STRING, digit_string, true});
 }
