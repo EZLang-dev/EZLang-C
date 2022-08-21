@@ -16,11 +16,13 @@ int c;
 const char* code;
 int codeLength;
 
+char peek(int a){
+    if(c + a > codeLength) return 0;
+    return code[c + a];
+}
+
 char current(){
-    if(c > codeLength){
-        exit(-1);
-    }
-    return code[c];
+    return peek(0);
 }
 
 ez_token* ez_lex(const char* string, int* tokenc){
@@ -34,8 +36,19 @@ ez_token* ez_lex(const char* string, int* tokenc){
     while(current()){
 
         if(current() == ' ') {c++; continue;}
+        if(current() == '\t') {c++; continue;}
         if(current() == '\n') {c++; continue;}
         if(current() == ';') {c++; ez_add_token_fast(EZ_TOKEN_TYPE_NEWLINE); continue;}
+        if(current() == '/' && peek(1) == '/') {while(current() != '\n') c++; c++; continue;}
+
+        if(current() == '{') {c++; ez_add_token_fast(EZ_TOKEN_TYPE_BRACKETS_OPEN); continue;}
+        if(current() == '}') {c++; ez_add_token_fast(EZ_TOKEN_TYPE_BRACKETS_CLOSE); continue;}
+
+        if(current() == '(') {c++; ez_add_token_fast(EZ_TOKEN_TYPE_PARENTHASIS_OPEN); continue;}
+        if(current() == ')') {c++; ez_add_token_fast(EZ_TOKEN_TYPE_PARENTHASIS_CLOSE); continue;}
+
+        if(current() == ',') {c++; ez_add_token_fast(EZ_TOKEN_TYPE_COMMA); continue;}
+        if(current() == '.') {c++; ez_add_token_fast(EZ_TOKEN_TYPE_ACCESS); continue;}
 
         if(isalpha(current())){
             ez_lex_word();
@@ -62,7 +75,7 @@ ez_token* ez_lex(const char* string, int* tokenc){
             ez_add_token_fast(EZ_TOKEN_TYPE_LESS_THAN);
         }
 
-        std::cerr << "ERROR: Unexpected char: " << current() << "(" << (int)current() << ")" << std::endl;
+        std::cerr << "[" << c << "]ERROR: Unexpected char: " << current() << "(" << (int)current() << ")" << std::endl;
         c++;
     }
 
@@ -72,7 +85,7 @@ ez_token* ez_lex(const char* string, int* tokenc){
 }
 
 void ez_add_token_fast(EZ_TOKEN_TYPE type) {
-    tokens.push_back({type, "NULL"});
+    tokens.push_back({type, nullptr});
 }
 
 void ez_lex_word(){
